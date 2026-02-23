@@ -136,6 +136,13 @@ async function seedDatabase() {
         bodyRu: "В прямоугольном треугольнике квадрат гипотенузы равен сумме квадратов катетов: a² + b² = c²."
       },
       {
+        sectionId: insertedSections[0].id,
+        titleEn: "Basic Algebra", titleUz: "Algebra asoslari", titleRu: "Основы алгебры",
+        bodyEn: "Algebra uses symbols and letters to represent numbers in equations and formulas. For example, in 2x + 3 = 7, x is the variable we solve for.",
+        bodyUz: "Algebra tenglamalar va formulalardagi sonlarni ifodalash uchun belgilar va harflardan foydalanadi. Masalan, 2x + 3 = 7 da x biz yechadigan o'zgaruvchidir.",
+        bodyRu: "Алгебра использует символы и буквы для представления чисел в уравнениях и формулах. Например, в 2x + 3 = 7, x — это переменная, которую мы находим."
+      },
+      {
         sectionId: insertedSections[1].id,
         titleEn: "Python Variables", titleUz: "Python o'zgaruvchilari", titleRu: "Переменные Python",
         bodyEn: "Python has int, float, str, and bool data types. Variables are declared dynamically.", 
@@ -143,11 +150,46 @@ async function seedDatabase() {
         bodyRu: "В Python есть типы данных int, float, str и bool. Переменные объявляются динамически."
       },
       {
+        sectionId: insertedSections[1].id,
+        titleEn: "Control Flow", titleUz: "Boshqaruv oqimi", titleRu: "Управляющие конструкции",
+        bodyEn: "If statements, for loops, and while loops allow you to control the execution of your code based on conditions.",
+        bodyUz: "If operatorlari, for va while tsikllari sharoitga qarab kodning bajarilishini boshqarish imkonini beradi.",
+        bodyRu: "Операторы if, циклы for и while позволяют управлять выполнением кода в зависимости от условий."
+      },
+      {
         sectionId: insertedSections[2].id,
         titleEn: "Newton's Laws of Motion", titleUz: "Nyuton qonunlari", titleRu: "Законы Ньютона",
         bodyEn: "First law: An object remains at rest or in uniform motion unless acted upon by a force.", 
         bodyUz: "Birinchi qonun: Jismga tashqi kuch ta'sir etmaguncha u tinch holatini yoki to'g'ri chiziqli tekis harakatini saqlaydi.", 
         bodyRu: "Первый закон: Тело находится в покое или движется равномерно, пока на него не подействует сила."
+      },
+      {
+        sectionId: insertedSections[2].id,
+        titleEn: "The Solar System", titleUz: "Quyosh tizimi", titleRu: "Солнечная система",
+        bodyEn: "The Solar System consists of the Sun and everything that orbits around it, including eight planets and their moons.",
+        bodyUz: "Quyosh tizimi Quyoshdan va uning atrofida aylanadigan hamma narsadan, jumladan sakkizta sayyora va ularning yo'ldoshlaridan iborat.",
+        bodyRu: "Солнечная система состоит из Солнца и всего, что вращается вокруг него, включая восемь планет и их спутники."
+      },
+      {
+        sectionId: insertedSections[3].id,
+        titleEn: "The Silk Road", titleUz: "Buyuk Ipak yo'li", titleRu: "Великий шелковый путь",
+        bodyEn: "The Silk Road was an ancient network of trade routes that connected the East and West for centuries.",
+        bodyUz: "Buyuk Ipak yo'li asrlar davomida Sharq va G'arbni bog'lab turgan qadimiy savdo yo'llari tarmog'i edi.",
+        bodyRu: "Великий шелковый путь был древней сетью торговых путей, соединявших Восток и Запад на протяжении веков."
+      },
+      {
+        sectionId: insertedSections[4].id,
+        titleEn: "Parts of Speech", titleUz: "So'z turkumlari", titleRu: "Части речи",
+        bodyEn: "Nouns, verbs, adjectives, and adverbs are the building blocks of language, each serving a specific function in a sentence.",
+        bodyUz: "Ot, fe'l, sifat va ravish tilning asosiy qurilish bloklari bo'lib, ularning har biri gapda o'ziga xos vazifani bajaradi.",
+        bodyRu: "Существительные, глаголы, прилагательные и наречия — это строительные блоки языка, каждый из которых выполняет определенную функцию в предложении."
+      },
+      {
+        sectionId: insertedSections[5].id,
+        titleEn: "Critical Thinking", titleUz: "Tanqidiy fikrlash", titleRu: "Критическое мышление",
+        bodyEn: "Critical thinking is the analysis of facts to form a judgment. It is self-directed, self-disciplined, and self-monitored.",
+        bodyUz: "Tanqidiy fikrlash - xulosa chiqarish uchun faktlarni tahlil qilishdir. Bu mustaqil, intizomli va nazorat qilinadigan jarayondir.",
+        bodyRu: "Критическое мышление — это анализ фактов для формирования суждения. Оно является направленным, дисциплинированным и самоконтролируемым."
       }
     ]);
   }
