@@ -1,0 +1,540 @@
+# 🎓 Replit Build Prompt: Educational AI Learning Platform
+
+## Project Overview
+
+Build a **multilingual educational learning platform** (English, Uzbek, Russian) with an embedded **AI assistant powered by Ollama (llama3)**. The website runs on **Nginx** inside a Kubernetes cluster, with the AI model running in a **separate pod** and communicating via internal Kubernetes service ports. The backend uses **PostgreSQL** for clean, structured educational data.
+
+---
+
+## 📁 Project Structure
+
+```
+/project-root
+├── frontend/                  # Static HTML/CSS/JS served by Nginx
+│   ├── index.html
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── main.js
+│       └── chat.js
+├── backend/                   # Node.js or Python FastAPI backend
+│   ├── app.py (or server.js)
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── content.py
+│   │   └── chat.py
+│   ├── rag/
+│   │   ├── embeddings.py      # Text chunking + embedding logic
+│   │   └── retriever.py       # Semantic search from PostgreSQL (pgvector)
+│   ├── db/
+│   │   ├── models.py
+│   │   └── seed.py            # Seed script with clean educational data
+│   └── requirements.txt
+├── k8s/                       # Kubernetes manifests
+│   ├── namespace.yaml
+│   ├── postgres-deployment.yaml
+│   ├── postgres-service.yaml
+│   ├── backend-deployment.yaml
+│   ├── backend-service.yaml
+│   ├── ollama-deployment.yaml
+│   ├── ollama-service.yaml
+│   ├── nginx-deployment.yaml
+│   ├── nginx-service.yaml
+│   └── ingress.yaml
+├── nginx/
+│   └── nginx.conf
+└── README.md
+```
+
+---
+
+## 🖥️ Frontend Requirements
+
+### Main Page Layout
+- Modern, clean educational design with a **sidebar or top navigation**
+- Navigation links to subject sections: Mathematics, Programming, Science, History & Geography, Languages & Literature, General Knowledge
+- Each section has **rich content**: articles, definitions, formulas, examples, and exercises
+- **Multilingual toggle** (EN / UZ / RU) in the header — switches all UI text and content language
+
+### Content Sections (minimum 3 cards/articles per section)
+Each section should have real, clean educational content seeded in the database:
+- **Mathematics**: Algebra, Geometry, Calculus topics with formulas and explanations
+- **Programming**: Python basics, Data Structures, Algorithms with code examples
+- **Science**: Physics laws, Chemistry elements, Biology cell structure
+- **History & Geography**: World history timelines, country facts, maps
+- **Languages & Literature**: Grammar rules, literary terms, writing tips
+- **General Knowledge**: Logic puzzles, trivia, study tips
+
+### AI Chat Widget (Floating Button)
+- **Bottom-right floating button** (💬 icon) always visible on all pages
+- On click: a **chat drawer slides up** (400px height, 350px wide) from the bottom-right corner
+- Chat drawer has:
+  - Header: "AI Assistant 🤖" with a close (✕) button
+  - Scrollable message history area
+  - Text input field at the bottom
+  - Send button (or Enter key to submit)
+  - Language selector (EN/UZ/RU) inside the chat to control response language
+- Chat is **context-aware**: it knows which section/page the user is on and uses that as context for RAG
+- Messages are styled with user bubbles (right, blue) and AI bubbles (left, gray)
+- Show a **typing indicator** (animated dots) while waiting for AI response
+- Chat history is stored in **localStorage** for session persistence (no login required for chat)
+
+### Authentication (Optional Login)
+- **Public**: All content sections are publicly visible without login
+- **Login/Register modal**: triggered by "Sign In" button in the header
+- Logged-in users get:
+  - Bookmarked lessons saved to their profile
+  - Chat history saved to the database (not just localStorage)
+  - Progress tracking per subject
+- Auth: JWT tokens, stored in localStorage
+- Simple login/register form (email + password)
+
+---
+
+## ⚙️ Backend Requirements
+
+Use **Python + FastAPI** for the backend API.
+
+### API Endpoints
+
+```
+POST   /api/auth/register        # Register new user
+POST   /api/auth/login           # Login, returns JWT
+GET    /api/content/sections     # List all sections
+GET    /api/content/{section}    # Get articles for a section
+GET    /api/content/search?q=    # Full-text search across all content
+POST   /api/chat                 # Send message to AI assistant (RAG)
+GET    /api/chat/history         # Get chat history (authenticated users)
+POST   /api/bookmarks            # Save bookmark (auth required)
+GET    /api/bookmarks            # Get user bookmarks (auth required)
+```
+
+### RAG (Retrieval-Augmented Generation) Pipeline
+
+```
+User Question
+     ↓
+1. Embed question using sentence-transformers (all-MiniLM-L6-v2, free)
+2. Search PostgreSQL (pgvector extension) for top-5 most similar content chunks
+3. Build context prompt:
+   "You are an educational assistant. Use the following content to answer:
+   [retrieved chunks]
+   Question: [user question]
+   Answer in [selected language]:"
+4. Send prompt to Ollama API at http://ollama-service:11434/api/generate
+5. Stream response back to frontend
+```
+
+### Chat API Logic (`/api/chat`)
+```python
+# Request body
+{
+  "message": "What is the Pythagorean theorem?",
+  "language": "en",          # en | uz | ru
+  "section": "mathematics",  # current page context
+  "user_id": null            # optional, if logged in
+}
+
+# Response (streaming)
+{
+  "response": "The Pythagorean theorem states...",
+  "sources": ["Mathematics > Geometry > Triangles"]
+}
+```
+
+---
+
+## 🗄️ Database Requirements (PostgreSQL + pgvector)
+
+### Schema
+
+```sql
+-- Enable vector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Users table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  preferred_language VARCHAR(10) DEFAULT 'en',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Content sections
+CREATE TABLE sections (
+  id SERIAL PRIMARY KEY,
+  slug VARCHAR(100) UNIQUE NOT NULL,     -- e.g. 'mathematics'
+  title_en VARCHAR(255),
+  title_uz VARCHAR(255),
+  title_ru VARCHAR(255),
+  icon VARCHAR(50)
+);
+
+-- Educational articles / lessons
+CREATE TABLE articles (
+  id SERIAL PRIMARY KEY,
+  section_id INT REFERENCES sections(id),
+  title_en TEXT,
+  title_uz TEXT,
+  title_ru TEXT,
+  body_en TEXT,                          -- Clean educational content in English
+  body_uz TEXT,                          -- Same content in Uzbek
+  body_ru TEXT,                          -- Same content in Russian
+  tags TEXT[],
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Content chunks for RAG (embedded pieces of articles)
+CREATE TABLE content_chunks (
+  id SERIAL PRIMARY KEY,
+  article_id INT REFERENCES articles(id),
+  chunk_text TEXT NOT NULL,              -- Clean text chunk (200-500 tokens)
+  language VARCHAR(10) DEFAULT 'en',
+  embedding vector(384),                 -- all-MiniLM-L6-v2 produces 384-dim vectors
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create vector index for fast similarity search
+CREATE INDEX ON content_chunks USING ivfflat (embedding vector_cosine_ops);
+
+-- Chat history (for logged-in users)
+CREATE TABLE chat_messages (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  session_id VARCHAR(255),
+  role VARCHAR(10) NOT NULL,             -- 'user' or 'assistant'
+  content TEXT NOT NULL,
+  language VARCHAR(10),
+  section_context VARCHAR(100),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bookmarks
+CREATE TABLE bookmarks (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  article_id INT REFERENCES articles(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, article_id)
+);
+```
+
+### Seed Data (`seed.py`)
+Populate the database with **clean, well-structured educational content** covering all 6 subjects. Each article must:
+- Be factually accurate
+- Be written in all 3 languages (EN, UZ, RU)
+- Be chunked into 200-500 token pieces and embedded into `content_chunks`
+- Minimum: **5 articles per section = 30 articles total**
+
+Example seed entries:
+```python
+# Mathematics
+"The Pythagorean Theorem: In a right triangle, a² + b² = c²..."
+"Introduction to Algebra: Variables, expressions, and equations..."
+"Calculus Basics: Derivatives and the concept of rate of change..."
+
+# Programming
+"Python Variables and Data Types: int, float, str, bool..."
+"What is a Function?: def keyword, parameters, return values..."
+"Big O Notation: Understanding algorithm time complexity..."
+```
+
+---
+
+## 🐳 Kubernetes Manifests (k8s/)
+
+### Namespace
+```yaml
+# namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edu-platform
+```
+
+### PostgreSQL Pod
+```yaml
+# postgres-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: edu-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: pgvector/pgvector:pg16
+        env:
+        - name: POSTGRES_DB
+          value: "edudb"
+        - name: POSTGRES_USER
+          value: "eduuser"
+        - name: POSTGRES_PASSWORD
+          value: "edupassword"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: edu-platform
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+```
+
+### Ollama Pod (AI Model Container)
+```yaml
+# ollama-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: edu-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          ollama serve &
+          sleep 10
+          ollama pull llama3
+          wait
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: edu-platform
+spec:
+  selector:
+    app: ollama
+  ports:
+  - port: 11434
+    targetPort: 11434
+```
+
+### Backend Pod (FastAPI)
+```yaml
+# backend-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: edu-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: backend:latest   # Build from ./backend Dockerfile
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://eduuser:edupassword@postgres-service:5432/edudb"
+        - name: OLLAMA_URL
+          value: "http://ollama-service:11434"
+        - name: JWT_SECRET
+          value: "change-this-secret-in-production"
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: edu-platform
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+```
+
+### Nginx Pod (Frontend + Reverse Proxy)
+```yaml
+# nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: edu-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: frontend-files
+          mountPath: /usr/share/nginx/html
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d
+      volumes:
+      - name: frontend-files
+        configMap:
+          name: frontend-files
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: edu-platform
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+```
+
+### Nginx Config
+```nginx
+# nginx/nginx.conf
+server {
+    listen 80;
+
+    # Serve frontend static files
+    location / {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API requests to backend pod
+    location /api/ {
+        proxy_pass http://backend-service:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_buffering off;           # Important for streaming AI responses
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+---
+
+## 🔗 Inter-Service Communication (Kubernetes Internal DNS)
+
+All services communicate via **Kubernetes internal DNS** (no external ports needed):
+
+```
+Frontend (Browser)
+       ↓ HTTP
+Nginx Pod (:80)
+       ↓ proxy_pass /api/
+Backend Pod (:8000)
+       ↓ pgvector search
+PostgreSQL Pod (:5432)
+       ↓ HTTP POST /api/generate
+Ollama Pod (:11434) [llama3 model]
+```
+
+Internal URLs used in backend:
+- Database: `postgresql://eduuser:edupassword@postgres-service:5432/edudb`
+- Ollama: `http://ollama-service:11434/api/generate`
+
+---
+
+## 🚀 Deployment Steps
+
+Add these instructions to the README:
+
+```bash
+# 1. Apply namespace
+kubectl apply -f k8s/namespace.yaml
+
+# 2. Deploy database
+kubectl apply -f k8s/postgres-deployment.yaml
+
+# 3. Deploy Ollama (will pull llama3 on startup — may take a few minutes)
+kubectl apply -f k8s/ollama-deployment.yaml
+
+# 4. Build and deploy backend
+kubectl apply -f k8s/backend-deployment.yaml
+
+# 5. Deploy Nginx frontend
+kubectl apply -f k8s/nginx-deployment.yaml
+
+# 6. Run database migrations and seed data
+kubectl exec -it deployment/backend -n edu-platform -- python db/seed.py
+
+# 7. Get external IP
+kubectl get service nginx-service -n edu-platform
+```
+
+---
+
+## ✅ Key Technical Requirements Summary
+
+- **Frontend**: Vanilla HTML/CSS/JS (no heavy framework), responsive, multilingual (EN/UZ/RU)
+- **Chat widget**: Floating bottom-right button → slide-up drawer → streaming AI responses
+- **Backend**: Python FastAPI, JWT auth, RAG pipeline with pgvector similarity search
+- **AI**: Ollama llama3, running in isolated pod, reachable at `http://ollama-service:11434`
+- **Database**: PostgreSQL + pgvector, pre-seeded with clean educational content in 3 languages
+- **Deployment**: Kubernetes manifests for all 4 pods (nginx, backend, postgres, ollama)
+- **RAG**: sentence-transformers `all-MiniLM-L6-v2` for free local embeddings
+- **Streaming**: AI responses streamed chunk-by-chunk to the frontend via Server-Sent Events (SSE)
+- **Search**: Full-text search endpoint + vector similarity search for AI context retrieval
+- **Auth**: Optional — public content visible to all, bookmarks/history require login
