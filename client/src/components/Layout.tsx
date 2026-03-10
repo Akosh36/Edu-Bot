@@ -23,7 +23,7 @@ export function Layout({ children }: { children: ReactNode }) {
     if (isAuthenticated) {
       window.location.href = '/api/logout';
     } else {
-      window.location.href = '/api/login';
+      window.location.href = '/login';
     }
   };
 

@@ -4,13 +4,14 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { isAuthenticated } from "./replit_integrations/auth";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, getSession } from "./replit_integrations/auth";
 import { initializeAdminAuth } from "./replit_integrations/admin";
 import { registerAdminRoutes } from "./replit_integrations/admin/routes";
 import Groq from "groq-sdk";
 import { db } from "./db";
-import { articles, sections } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { articles, sections, users } from "@shared/schema";
+import { sql, eq } from "drizzle-orm";
+import passport from "passport";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || "",
@@ -20,8 +21,48 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Always set up basic session and passport for authentication
+  app.set("trust proxy", 1);
+  app.use(getSession());
+  app.use(passport.initialize());
+  app.use(passport.session());
   
-  await setupAuth(app);
+  // Serialize user to session (store user ID)
+  passport.serializeUser((user: any, cb) => {
+    if (user.id) {
+      cb(null, user.id);
+    } else if (user.claims?.sub) {
+      cb(null, user.claims.sub);
+    } else {
+      cb(null, user);
+    }
+  });
+  
+  // Deserialize user from session (restore user object)
+  passport.deserializeUser(async (userId: string, cb) => {
+    try {
+      const [userData] = await db.select().from(users).where(eq(users.id, userId));
+      if (userData) {
+        cb(null, {
+          claims: {
+            sub: userData.id,
+            email: userData.email,
+          },
+        });
+      } else {
+        cb(null, null);
+      }
+    } catch (error) {
+      cb(error);
+    }
+  });
+  
+  // Only setup Replit OIDC auth if enabled
+  if (process.env.REPLIT_AUTH_ENABLED !== 'false') {
+    await setupAuth(app);
+  }
+  
+  // Register auth routes (handles both Replit and email/password login)
   registerAuthRoutes(app);
   
   // Initialize admin authentication
@@ -53,14 +94,18 @@ export async function registerRoutes(
 
   app.post(api.bookmarks.create.path, isAuthenticated, async (req: any, res) => {
     try {
+      console.log("Bookmark create request body:", req.body);
       const { articleId } = api.bookmarks.create.input.parse(req.body);
+      console.log("Parsed articleId:", articleId, "type:", typeof articleId);
       const data = await storage.createBookmark(req.user.claims.sub, articleId);
       res.status(201).json(data);
     } catch (e) {
+      console.error("Bookmark creation error:", e);
       if (e instanceof z.ZodError) {
+        console.error("Zod errors:", e.errors);
         return res.status(400).json({ message: e.errors[0].message });
       }
-      res.status(400).json({ message: "Invalid input" });
+      res.status(400).json({ message: "Invalid input", error: String(e) });
     }
   });
 
