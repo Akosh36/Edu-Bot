@@ -9,6 +9,8 @@ import Home from "@/pages/Home";
 import Section from "@/pages/Section";
 import Article from "@/pages/Article";
 import Bookmarks from "@/pages/Bookmarks";
+import AdminLogin from "@/pages/AdminLogin";
+import AdminDashboard from "@/pages/AdminDashboard";
 import { ChatAssistant } from "@/components/ChatAssistant";
 
 function Router() {
@@ -20,6 +22,8 @@ function Router() {
         <Route path="/sections/:slug" component={Section} />
         <Route path="/articles/:id" component={Article} />
         <Route path="/bookmarks" component={Bookmarks} />
+        <Route path="/admin/login" component={AdminLogin} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route component={NotFound} />
       </Switch>
       <ChatAssistant />

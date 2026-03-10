@@ -5,14 +5,15 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { isAuthenticated } from "./replit_integrations/auth";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
-import OpenAI from "openai";
+import { initializeAdminAuth } from "./replit_integrations/admin";
+import { registerAdminRoutes } from "./replit_integrations/admin/routes";
+import Groq from "groq-sdk";
 import { db } from "./db";
 import { articles, sections } from "@shared/schema";
 import { sql } from "drizzle-orm";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || "",
 });
 
 export async function registerRoutes(
@@ -22,6 +23,10 @@ export async function registerRoutes(
   
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Initialize admin authentication
+  initializeAdminAuth(app);
+  await registerAdminRoutes(app);
 
   app.get(api.sections.list.path, async (req, res) => {
     const data = await storage.getSections();
@@ -68,7 +73,7 @@ export async function registerRoutes(
     try {
       const { message, language, section } = api.chat.send.input.parse(req.body);
       
-      // Basic text search for RAG since AI Integrations doesn't support embeddings
+      // Basic text search for RAG since Groq doesn't support embeddings
       let contextStr = "No specific context found.";
       const searchTerm = message.split(' ').find(w => w.length > 3) || message;
       const articlesFound = await storage.getArticles(undefined, searchTerm);
@@ -82,14 +87,14 @@ export async function registerRoutes(
         contextStr = `Found relevant context:\n\n${bodies.join('\n\n')}`;
       }
       
-      const stream = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Replit AI Integrations uses gpt-4o-mini, gpt-4o, etc
+      const stream = await groq.chat.completions.create({
+        model: "mixtral-8x7b-32768", // Groq's free tier model
         messages: [
           { role: "system", content: `You are an educational assistant for a platform. Respond in language: ${language}. Context section: ${section || 'General'}. Use the following context to answer if relevant:\n\n${contextStr}` },
           { role: "user", content: message }
         ],
         stream: true,
-        max_completion_tokens: 8192,
+        max_tokens: 1024,
       });
 
       res.setHeader("Content-Type", "text/event-stream");
