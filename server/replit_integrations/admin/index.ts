@@ -20,9 +20,13 @@ declare global {
 }
 
 export function initializeAdminAuth(app: any) {
-  // Middleware to check admin session from URL query or cookie
+  // Middleware to check admin session from Authorization header, URL query, or cookie
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const adminToken = req.query.adminToken as string || req.cookies?.adminToken;
+    const authHeader = req.headers.authorization as string | undefined;
+    const adminToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : (req.query.adminToken as string | undefined) || req.cookies?.adminToken;
+
     if (adminToken) {
       // Simple validation - in production use proper jwt or encrypted sessions
       try {
@@ -31,8 +35,8 @@ export function initializeAdminAuth(app: any) {
         if (username === ADMIN_USERNAME) {
           req.adminSession = {
             adminId: 'admin',
-            username: username,
-            loginTime: parseInt(timestamp),
+            username,
+            loginTime: parseInt(timestamp, 10),
           };
         }
       } catch (e) {

@@ -1,163 +1,109 @@
-# 🎓 Educational AI Learning Platform
+# 🎓 Edu-Bot — Educational AI Learning Platform
 
-A modern, multilingual educational platform (English, Uzbek, Russian) featuring an AI assistant for contextual learning support and a powerful admin panel.
+A simple learning platform with multilingual lessons, a free AI chat assistant, and an admin dashboard for managing course content.
 
-## 🌟 Features
+## What this project does
 
-- **Multilingual Support**: Switch seamlessly between English, Uzbek, and Russian.
-- **AI Learning Assistant**: Free context-aware AI assistant (powered by Groq's Mixtral) to help with student queries - no credit card required!
-- **Subject-Specific Content**: Comprehensive lessons in Mathematics, Programming, Science, History, Languages, and General Knowledge.
-- **User Progress & Bookmarks**: Save important lessons to your profile (requires sign-in).
-- **Secure Admin Panel**: Manage sections and articles with a professional admin dashboard.
-- **Content Management**: Create, edit, and delete educational content directly from the admin panel.
-- **Secure Authentication**: 
-  - Integrated Replit Auth for student users
-  - Built-in admin authentication for content managers
+Edu-Bot lets students:
+- browse educational sections and articles,
+- ask questions to an AI assistant directly from the page,
+- save bookmarks when signed in.
 
-## ✨ What's New
+It also lets content managers:
+- log in to an admin panel,
+- add, edit, and remove sections,
+- add, edit, and remove articles in English, Uzbek, and Russian.
 
-### 🤖 Free AI Chat Assistant
-- Powered by **Groq's free tier** (Mixtral 8x7b)
-- No credit card required!
-- Context-aware responses using your content database
-- Supports all three languages (English, Uzbek, Russian)
-- Fast, reliable, and completely free
+## Why it is useful
 
-### 🔐 Admin Panel
-- **Secure Login**: Username/password authentication
-- **Section Management**: Create, edit, and delete course sections
-- **Article Management**: Full CRUD operations for educational content
-- **Multi-language Support**: Manage content in all supported languages
-- **Clean Dashboard**: Intuitive interface for content management
+- The AI helper uses your own lesson content as context.
+- Admin users can update the site without editing code.
+- The platform supports three languages and can be extended.
 
-## 🛠️ Tech Stack
+## Quick start
 
-- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn UI, Framer Motion.
-- **Backend**: Node.js, Express.
-- **Database**: PostgreSQL with Drizzle ORM.
-- **AI**: Groq SDK (free tier) for intelligent responses.
-- **Authentication**: Session-based admin auth + Replit Auth for users.
-
-## 🚀 Getting Started
-
-### Quick Setup
-
-1. **Clone the repository**
-
-2. **Install dependencies**:
+1. Install dependencies:
    ```bash
    npm install
    ```
-
-3. **Get Groq API Key** (Free, no credit card):
-   - Visit https://console.groq.com
-   - Create account and generate API key
-
-4. **Create .env file**:
+2. Create a `.env` file with:
    ```bash
    DATABASE_URL=postgresql://user:password@localhost:5432/edubot
    GROQ_API_KEY=gsk_your_key_here
    ADMIN_USERNAME=admin
    ADMIN_PASSWORD=admin
    ```
-   
-   See `.env.example` for all available options.
-
-5. **Push database schema**:
+3. Initialize the database:
    ```bash
    npm run db:push
    ```
-
-6. **Start the application**:
+4. Start the app:
    ```bash
    npm run dev
    ```
+5. Open the site:
+   - Main app: `http://localhost:5173`
+   - Admin login: `http://localhost:5173/admin/login`
 
-7. **Access the application**:
-   - Main app: http://localhost:5173
-   - Admin panel: http://localhost:5173/admin/login
+## Admin access and adding content
 
-## 📖 Project Structure
+If you want to add new information, do this:
+
+1. Open `http://localhost:5173/admin/login`
+2. Log in with:
+   - Username: `admin`
+   - Password: `admin`
+3. After login, go to `http://localhost:5173/admin/dashboard`
+4. Use the dashboard to:
+   - create a new section,
+   - create a new article,
+   - edit articles in English, Uzbek, or Russian,
+   - delete content you no longer need.
+
+> Important: change `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` before using this in production.
+
+## Project structure
 
 - `client/`: React frontend application
   - `src/pages/`: Page components
-    - `AdminLogin.tsx`: Admin login page
-    - `AdminDashboard.tsx`: Admin content management
-    - `Home.tsx`, `Article.tsx`, etc.: Student-facing pages
-  - `src/components/`: Reusable React components
+    - `AdminLogin.tsx`: admin login page
+    - `AdminDashboard.tsx`: admin content management
+    - `Home.tsx`, `Article.tsx`, etc.: student-facing pages
+  - `src/components/`: reusable UI components
     - `ChatAssistant.tsx`: AI chat widget
-- `server/`: Express backend
-  - `routes.ts`: API endpoints
-  - `replit_integrations/admin/`: Admin authentication & routes
-  - `storage.ts`: Database operations
-- `shared/`: Shared types and schema
+- `server/`: Express backend and API routes
+  - `routes.ts`: main server routes
+  - `replit_integrations/admin/`: admin auth and admin API
+  - `storage.ts`: database helpers
+- `shared/`: shared route and schema definitions
 
-## 🔑 Key Routes
+## Main user routes
 
-### Public Routes
-- `/` - Home page
-- `/sections` - Browse sections
-- `/sections/:slug` - Section details
-- `/articles/:id` - Read article
-- `/bookmarks` - Saved articles (authenticated)
+- `/` — home page
+- `/sections` — view all sections
+- `/sections/:slug` — section details
+- `/articles/:id` — article page
+- `/bookmarks` — saved articles page
 
-### Admin Routes
-- `/admin/login` - Admin login
-- `/admin/dashboard` - Content management
+## Admin routes
 
-### API Routes
-- `GET /api/content/sections` - Get all sections
-- `GET /api/content/articles` - Get articles
-- `POST /api/chat` - Chat with AI
-- `GET /api/admin/sections` - Manage sections (admin)
-- `GET /api/admin/articles` - Manage articles (admin)
+- `/admin/login` — login to admin panel
+- `/admin/dashboard` — manage content after login
 
-## 📚 Admin Features
+## How AI chat works
 
-### Manage Sections
-- Create educational sections
-- Add icon and translations (En/Uz/Ru)
-- Edit section details
-- Delete sections
+When a student asks a question, the app:
+1. finds relevant course content,
+2. sends that content as context to the AI service,
+3. receives a response,
+4. displays the answer in the chat widget.
 
-### Manage Articles
-- Create learning materials
-- Support for multiple languages
-- Add tags for better organization
-- Edit and delete articles
-- Organize by sections
+## Notes
 
-## 🎯 Default Credentials
+- The admin dashboard is the place to add and update learning content.
+- The AI assistant uses your published lessons to answer questions.
+- Update `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.env` to protect the admin panel.
 
-Default admin login:
-- **Username**: `admin`
-- **Password**: `admin`
-
-⚠️ Change these in production!
-
-## 📖 Documentation
-
-For detailed setup instructions, see [ADMIN_SETUP_GUIDE.md](./ADMIN_SETUP_GUIDE.md)
-
-## 💡 How the AI Chat Works
-
-1. User asks a question in the chat widget
-2. The system searches your article database for relevant content
-3. The AI receives the matching articles as context
-4. Groq's Mixtral model generates a context-aware response
-5. Response is streamed back to the user in real-time
-
-The AI always grounds its answers in your actual content, ensuring accuracy for your educational platform.
-
-## 🔒 Security Features
-
-- Admin session-based authentication
-- Input validation with Zod
-- Database query protection with ORM
-- CORS configured for your domain
-- Environment variable protection
-
-## 📄 License
+## License
 
 MIT
-
