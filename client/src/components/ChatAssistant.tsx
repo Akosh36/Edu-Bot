@@ -97,9 +97,11 @@ export function ChatAssistant() {
                           ? 'bg-primary text-primary-foreground rounded-br-sm shadow-sm' 
                           : 'bg-white dark:bg-zinc-800 border border-border/50 text-foreground rounded-bl-sm shadow-sm'
                       }`}>
-                        <ReactMarkdown className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:my-0">
-                          {msg.content}
-                        </ReactMarkdown>
+                        <div className="prose dark:prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:my-0">
+                          <ReactMarkdown>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
                       </div>
 
                       {msg.role === 'user' && (

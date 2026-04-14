@@ -48,10 +48,11 @@ export function useChatStream() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.content) {
+              const chunk = data.content ?? data.text;
+              if (chunk) {
                 setMessages(prev => prev.map(msg => 
                   msg.id === assistantMessageId 
-                    ? { ...msg, content: msg.content + data.content } 
+                    ? { ...msg, content: msg.content + chunk } 
                     : msg
                 ));
               }

@@ -133,7 +133,7 @@ export async function registerRoutes(
       }
       
       const stream = await groq.chat.completions.create({
-        model: "mixtral-8x7b-32768", // Groq's free tier model
+        model: "llama-3.3-70b-versatile", // Groq's free tier model
         messages: [
           { role: "system", content: `You are an educational assistant for a platform. Respond in language: ${language}. Context section: ${section || 'General'}. Use the following context to answer if relevant:\n\n${contextStr}` },
           { role: "user", content: message }
